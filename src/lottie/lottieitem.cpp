@@ -125,7 +125,7 @@ void renderer::Composition::setValue(const std::string &keypath,
     mRootLayer->resolveKeyPath(key, 0, value);
 }
 
-bool renderer::Composition::update(int frameNo, const VSize &size,
+bool renderer::Composition::update(float frameNo, const VSize &size,
                                    bool keepAspectRatio)
 {
     // check if cached frame is same as requested frame.
@@ -182,7 +182,7 @@ bool renderer::Composition::render(const rlottie::Surface &surface)
     return true;
 }
 
-void renderer::Mask::update(int frameNo, const VMatrix &parentMatrix,
+void renderer::Mask::update(float frameNo, const VMatrix &parentMatrix,
                             float /*parentAlpha*/, const DirtyFlag &flag)
 {
     bool dirtyPath = false;
@@ -288,7 +288,7 @@ renderer::LayerMask::LayerMask(model::Layer *layerData)
     }
 }
 
-void renderer::LayerMask::update(int frameNo, const VMatrix &parentMatrix,
+void renderer::LayerMask::update(float frameNo, const VMatrix &parentMatrix,
                                  float parentAlpha, const DirtyFlag &flag)
 {
     if (flag.testFlag(DirtyFlagBit::None) && isStatic()) return;
@@ -399,7 +399,7 @@ bool renderer::CompLayer::resolveKeyPath(LOTKeyPath &keyPath, uint32_t depth,
     return false;
 }
 
-void renderer::Layer::update(int frameNumber, const VMatrix &parentMatrix,
+void renderer::Layer::update(float frameNumber, const VMatrix &parentMatrix,
                              float parentAlpha)
 {
     mFrameNo = frameNumber;
@@ -445,7 +445,7 @@ void renderer::Layer::update(int frameNumber, const VMatrix &parentMatrix,
     mDirtyFlag = DirtyFlagBit::None;
 }
 
-VMatrix renderer::Layer::matrix(int frameNo) const
+VMatrix renderer::Layer::matrix(float frameNo) const
 {
     return mParentLayer
                ? (mLayerData->matrix(frameNo) * mParentLayer->matrix(frameNo))
@@ -659,7 +659,7 @@ void renderer::CompLayer::updateContent()
     if (mClipper && flag().testFlag(DirtyFlagBit::Matrix)) {
         mClipper->update(combinedMatrix());
     }
-    int   mappedFrame = mLayerData->timeRemap(frameNo());
+    float mappedFrame = mLayerData->timeRemap(frameNo());
     float alpha = combinedAlpha();
     if (complexContent()) alpha = 1;
     for (const auto &layer : mLayers) {
@@ -975,7 +975,7 @@ void renderer::Group::addChildren(model::Group *data, VArenaAlloc *allocator)
     }
 }
 
-void renderer::Group::update(int frameNo, const VMatrix &parentMatrix,
+void renderer::Group::update(float frameNo, const VMatrix &parentMatrix,
                              float parentAlpha, const DirtyFlag &flag)
 {
     DirtyFlag newFlag = flag;
@@ -1102,7 +1102,7 @@ void renderer::Group::processTrimItems(std::vector<renderer::Shape *> &list)
  * carefull about the refcount so that we don't generate deep copy while
  * modifying the path objects.
  */
-void renderer::Shape::update(int              frameNo, const VMatrix &, float,
+void renderer::Shape::update(float            frameNo, const VMatrix &, float,
                              const DirtyFlag &flag)
 {
     mDirtyPath = false;
@@ -1137,7 +1137,7 @@ renderer::Rect::Rect(model::Rect *data)
 {
 }
 
-void renderer::Rect::updatePath(VPath &path, int frameNo)
+void renderer::Rect::updatePath(VPath &path, float frameNo)
 {
     VPointF pos = mData->mPos.value(frameNo);
     VPointF size = mData->mSize.value(frameNo);
@@ -1154,7 +1154,7 @@ renderer::Ellipse::Ellipse(model::Ellipse *data)
 {
 }
 
-void renderer::Ellipse::updatePath(VPath &path, int frameNo)
+void renderer::Ellipse::updatePath(VPath &path, float frameNo)
 {
     VPointF pos = mData->mPos.value(frameNo);
     VPointF size = mData->mSize.value(frameNo);
@@ -1170,7 +1170,7 @@ renderer::Path::Path(model::Path *data)
 {
 }
 
-void renderer::Path::updatePath(VPath &path, int frameNo)
+void renderer::Path::updatePath(VPath &path, float frameNo)
 {
     mData->mShape.value(frameNo, path);
 }
@@ -1180,7 +1180,7 @@ renderer::Polystar::Polystar(model::Polystar *data)
 {
 }
 
-void renderer::Polystar::updatePath(VPath &path, int frameNo)
+void renderer::Polystar::updatePath(VPath &path, float frameNo)
 {
     VPointF pos = mData->mPos.value(frameNo);
     float   points = mData->mPointCount.value(frameNo);
@@ -1212,7 +1212,7 @@ void renderer::Polystar::updatePath(VPath &path, int frameNo)
  */
 renderer::Paint::Paint(bool staticContent) : mStaticContent(staticContent) {}
 
-void renderer::Paint::update(int frameNo, const VMatrix &parentMatrix,
+void renderer::Paint::update(float frameNo, const VMatrix &parentMatrix,
                              float parentAlpha, const DirtyFlag & /*flag*/)
 {
     mRenderNodeUpdate = true;
@@ -1272,7 +1272,7 @@ renderer::Fill::Fill(model::Fill *data)
     mDrawable.setName(mModel.name());
 }
 
-bool renderer::Fill::updateContent(int frameNo, const VMatrix &, float alpha)
+bool renderer::Fill::updateContent(float frameNo, const VMatrix &, float alpha)
 {
     auto combinedAlpha = alpha * mModel.opacity(frameNo);
     auto color = mModel.color(frameNo).toColor(combinedAlpha);
@@ -1290,7 +1290,7 @@ renderer::GradientFill::GradientFill(model::GradientFill *data)
     mDrawable.setName(mData->name());
 }
 
-bool renderer::GradientFill::updateContent(int frameNo, const VMatrix &matrix,
+bool renderer::GradientFill::updateContent(float frameNo, const VMatrix &matrix,
                                            float alpha)
 {
     float combinedAlpha = alpha * mData->opacity(frameNo);
@@ -1317,7 +1317,7 @@ renderer::Stroke::Stroke(model::Stroke *data)
 
 static vthread_local std::vector<float> Dash_Vector;
 
-bool renderer::Stroke::updateContent(int frameNo, const VMatrix &matrix,
+bool renderer::Stroke::updateContent(float frameNo, const VMatrix &matrix,
                                      float alpha)
 {
     auto combinedAlpha = alpha * mModel.opacity(frameNo);
@@ -1353,7 +1353,7 @@ renderer::GradientStroke::GradientStroke(model::GradientStroke *data)
     }
 }
 
-bool renderer::GradientStroke::updateContent(int frameNo, const VMatrix &matrix,
+bool renderer::GradientStroke::updateContent(float frameNo, const VMatrix &matrix,
                                              float alpha)
 {
     float combinedAlpha = alpha * mData->opacity(frameNo);
@@ -1393,7 +1393,7 @@ bool renderer::Trim::resolveKeyPath(LOTKeyPath &keyPath, uint32_t depth,
     return false;
 }
 
-void renderer::Trim::update(int frameNo, const VMatrix & /*parentMatrix*/,
+void renderer::Trim::update(float frameNo, const VMatrix & /*parentMatrix*/,
                             float /*parentAlpha*/, const DirtyFlag & /*flag*/)
 {
     mDirty = false;
@@ -1497,7 +1497,7 @@ renderer::Repeater::Repeater(model::Repeater *data, VArenaAlloc *allocator)
     }
 }
 
-void renderer::Repeater::update(int frameNo, const VMatrix &parentMatrix,
+void renderer::Repeater::update(float frameNo, const VMatrix &parentMatrix,
                                 float parentAlpha, const DirtyFlag &flag)
 {
     DirtyFlag newFlag = flag;

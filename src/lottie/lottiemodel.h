@@ -219,14 +219,14 @@ template <typename T, typename Tag>
 class KeyFrames {
 public:
     struct Frame {
-        float progress(int frameNo) const
+        float progress(float frameNo) const
         {
             return interpolator_ ? interpolator_->value((frameNo - start_) /
                                                         (end_ - start_))
                                  : 0;
         }
-        T     value(int frameNo) const { return value_.at(progress(frameNo)); }
-        float angle(int frameNo) const
+        T     value(float frameNo) const { return value_.at(progress(frameNo)); }
+        float angle(float frameNo) const
         {
             return value_.angle(progress(frameNo));
         }
@@ -237,7 +237,7 @@ public:
         Value<T, Tag>  value_;
     };
 
-    T value(int frameNo) const
+    T value(float frameNo) const
     {
         if (!frames_.empty()) {
             if (frames_.front().start_ >= frameNo)
@@ -252,7 +252,7 @@ public:
         return {};
     }
 
-    float angle(int frameNo) const
+    float angle(float frameNo) const
     {
         if (frames_.empty() ||
             (frames_.front().start_ >= frameNo) ||
@@ -266,7 +266,7 @@ public:
         return 0;
     }
 
-    bool changed(int prevFrame, int curFrame) const
+    bool changed(float prevFrame, float curFrame) const
     {
         if (frames_.empty()) return false;
 
@@ -331,14 +331,14 @@ public:
 
     bool isStatic() const { return isValue_; }
 
-    T value(int frameNo) const
+    T value(float frameNo) const
     {
         return isStatic() ? value() : animation().value(frameNo);
     }
 
     // special function only for type T=PathData
     template <typename forT = PathData>
-    auto value(int frameNo, VPath &path) const ->
+    auto value(float frameNo, VPath &path) const ->
         typename std::enable_if_t<std::is_same<T, forT>::value, void>
     {
         if (isStatic()) {
@@ -359,12 +359,12 @@ public:
         }
     }
 
-    float angle(int frameNo) const
+    float angle(float frameNo) const
     {
         return isStatic() ? 0 : animation().angle(frameNo);
     }
 
-    bool changed(int prevFrame, int curFrame) const
+    bool changed(float prevFrame, float curFrame) const
     {
         return isStatic() ? false : animation().changed(prevFrame, curFrame);
     }
@@ -414,13 +414,13 @@ struct Dash {
             if (!elm.isStatic()) return false;
         return true;
     }
-    void getDashInfo(int frameNo, std::vector<float> &result) const;
+    void getDashInfo(float frameNo, std::vector<float> &result) const;
 };
 
 class Mask {
 public:
     enum class Mode { None, Add, Substarct, Intersect, Difference };
-    float opacity(int frameNo) const
+    float opacity(float frameNo) const
     {
         return mOpacity.value(frameNo) / 100.0f;
     }
@@ -589,8 +589,8 @@ public:
             bool            mSeparate{false};
             bool            m3DData{false};
         };
-        VMatrix matrix(int frameNo, bool autoOrient = false) const;
-        float   opacity(int frameNo) const
+        VMatrix matrix(float frameNo, bool autoOrient = false) const;
+        float   opacity(float frameNo) const
         {
             return mOpacity.value(frameNo) / 100.0f;
         }
@@ -617,12 +617,12 @@ public:
             impl.mData = data;
         }
     }
-    VMatrix matrix(int frameNo, bool autoOrient = false) const
+    VMatrix matrix(float frameNo, bool autoOrient = false) const
     {
         if (isStatic()) return impl.mStaticData.mMatrix;
         return impl.mData->matrix(frameNo, autoOrient);
     }
-    float opacity(int frameNo) const
+    float opacity(float frameNo) const
     {
         if (isStatic()) return impl.mStaticData.mOpacity;
         return impl.mData->opacity(frameNo);
@@ -697,15 +697,15 @@ public:
         return mExtra ? mExtra->mSolidColor : Color();
     }
     bool    autoOrient() const noexcept { return mAutoOrient; }
-    int     timeRemap(int frameNo) const;
+    float   timeRemap(float frameNo) const;
     VSize   layerSize() const { return mLayerSize; }
     bool    precompLayer() const { return mLayerType == Type::Precomp; }
-    VMatrix matrix(int frameNo) const
+    VMatrix matrix(float frameNo) const
     {
         return mTransform ? mTransform->matrix(frameNo, autoOrient())
                           : VMatrix{};
     }
-    float opacity(int frameNo) const
+    float opacity(float frameNo) const
     {
         return mTransform ? mTransform->opacity(frameNo) : 1.0f;
     }
@@ -753,7 +753,7 @@ public:
  * will be convert to frame number 30 if the frame rate is 60. or will result to
  * frame number 15 if the frame rate is 30.
  */
-inline int Layer::timeRemap(int frameNo) const
+inline float Layer::timeRemap(float frameNo) const
 {
     /*
      * only consider startFrame() when there is no timeRemap.
@@ -771,23 +771,23 @@ inline int Layer::timeRemap(int frameNo) const
      * already applied to the layers inFrame and outFrame.
      * @TODO need to find out if timestreatch also affects the in and out frame
      * of the child layers or not. */
-    return int(frameNo / mTimeStreatch);
+    return frameNo / mTimeStreatch;
 }
 
 class Stroke : public Object {
 public:
     Stroke() : Object(Object::Type::Stroke) {}
-    Color color(int frameNo) const { return mColor.value(frameNo); }
-    float opacity(int frameNo) const
+    Color color(float frameNo) const { return mColor.value(frameNo); }
+    float opacity(float frameNo) const
     {
         return mOpacity.value(frameNo) / 100.0f;
     }
-    float     strokeWidth(int frameNo) const { return mWidth.value(frameNo); }
+    float     strokeWidth(float frameNo) const { return mWidth.value(frameNo); }
     CapStyle  capStyle() const { return mCapStyle; }
     JoinStyle joinStyle() const { return mJoinStyle; }
     float     miterLimit() const { return mMiterLimit; }
     bool      hasDashInfo() const { return !mDash.empty(); }
-    void      getDashInfo(int frameNo, std::vector<float> &result) const
+    void      getDashInfo(float frameNo, std::vector<float> &result) const
     {
         return mDash.getDashInfo(frameNo, result);
     }
@@ -818,14 +818,14 @@ public:
         std::vector<float> mGradient;
     };
     explicit Gradient(Object::Type type) : Object(type) {}
-    inline float opacity(int frameNo) const
+    inline float opacity(float frameNo) const
     {
         return mOpacity.value(frameNo) / 100.0f;
     }
-    void update(std::unique_ptr<VGradient> &grad, int frameNo);
+    void update(std::unique_ptr<VGradient> &grad, float frameNo);
 
 private:
-    void populate(VGradientStops &stops, int frameNo);
+    void populate(VGradientStops &stops, float frameNo);
     float getOpacityAtPosition(float *opacities, size_t opacityArraySize, float position);
 
 public:
@@ -843,12 +843,12 @@ public:
 class GradientStroke : public Gradient {
 public:
     GradientStroke() : Gradient(Object::Type::GStroke) {}
-    float     width(int frameNo) const { return mWidth.value(frameNo); }
+    float     width(float frameNo) const { return mWidth.value(frameNo); }
     CapStyle  capStyle() const { return mCapStyle; }
     JoinStyle joinStyle() const { return mJoinStyle; }
     float     miterLimit() const { return mMiterLimit; }
     bool      hasDashInfo() const { return !mDash.empty(); }
-    void      getDashInfo(int frameNo, std::vector<float> &result) const
+    void      getDashInfo(float frameNo, std::vector<float> &result) const
     {
         return mDash.getDashInfo(frameNo, result);
     }
@@ -873,8 +873,8 @@ public:
 class Fill : public Object {
 public:
     Fill() : Object(Object::Type::Fill) {}
-    Color color(int frameNo) const { return mColor.value(frameNo); }
-    float opacity(int frameNo) const
+    Color color(float frameNo) const { return mColor.value(frameNo); }
+    float opacity(float frameNo) const
     {
         return mOpacity.value(frameNo) / 100.0f;
     }
@@ -910,7 +910,7 @@ public:
 class RoundedCorner : public Object {
 public:
     RoundedCorner() : Object(Object::Type::RoundedCorner) {}
-    float radius(int frameNo) const { return mRadius.value(frameNo);}
+    float radius(float frameNo) const { return mRadius.value(frameNo);}
 public:
     Property<float>   mRadius{0};
 };
@@ -918,13 +918,13 @@ public:
 class Rect : public Shape {
 public:
     Rect() : Shape(Object::Type::Rect) {}
-    float roundness(int frameNo)
+    float roundness(float frameNo)
     {
         return mRoundedCorner ? mRoundedCorner->radius(frameNo) :
                                 mRound.value(frameNo);
     }
 
-    bool roundnessChanged(int prevFrame, int curFrame)
+    bool roundnessChanged(float prevFrame, float curFrame)
     {
         return mRoundedCorner ? mRoundedCorner->mRadius.changed(prevFrame, curFrame) :
                         mRound.changed(prevFrame, curFrame);
@@ -964,12 +964,12 @@ public:
 class Repeater : public Object {
 public:
     struct Transform {
-        VMatrix matrix(int frameNo, float multiplier) const;
-        float   startOpacity(int frameNo) const
+        VMatrix matrix(float frameNo, float multiplier) const;
+        float   startOpacity(float frameNo) const
         {
             return mStartOpacity.value(frameNo) / 100;
         }
-        float endOpacity(int frameNo) const
+        float endOpacity(float frameNo) const
         {
             return mEndOpacity.value(frameNo) / 100;
         }
@@ -990,8 +990,8 @@ public:
     Group *content() const { return mContent ? mContent : nullptr; }
     void   setContent(Group *content) { mContent = content; }
     int    maxCopies() const { return int(mMaxCopies); }
-    float  copies(int frameNo) const { return mCopies.value(frameNo); }
-    float  offset(int frameNo) const { return mOffset.value(frameNo); }
+    float  copies(float frameNo) const { return mCopies.value(frameNo); }
+    float  offset(float frameNo) const { return mOffset.value(frameNo); }
     bool   processed() const { return mProcessed; }
     void   markProcessed() { mProcessed = true; }
 
@@ -1033,7 +1033,7 @@ public:
      * if start < end vector trims the path without loop ( 1 segment).
      * if no offset then there is no loop.
      */
-    Segment segment(int frameNo) const
+    Segment segment(float frameNo) const
     {
         float start = mStart.value(frameNo) / 100.0f;
         float end = mEnd.value(frameNo) / 100.0f;

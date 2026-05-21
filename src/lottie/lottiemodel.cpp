@@ -158,7 +158,7 @@ void model::Composition::updateStats()
     visitor.visit(mRootLayer);
 }
 
-VMatrix model::Repeater::Transform::matrix(int frameNo, float multiplier) const
+VMatrix model::Repeater::Transform::matrix(float frameNo, float multiplier) const
 {
     VPointF scale = mScale.value(frameNo) / 100.f;
     scale.setX(std::pow(scale.x(), multiplier));
@@ -173,7 +173,7 @@ VMatrix model::Repeater::Transform::matrix(int frameNo, float multiplier) const
     return m;
 }
 
-VMatrix model::Transform::Data::matrix(int frameNo, bool autoOrient) const
+VMatrix model::Transform::Data::matrix(float frameNo, bool autoOrient) const
 {
     VMatrix m;
     VPointF position;
@@ -201,7 +201,7 @@ VMatrix model::Transform::Data::matrix(int frameNo, bool autoOrient) const
     return m;
 }
 
-void model::Dash::getDashInfo(int frameNo, std::vector<float> &result) const
+void model::Dash::getDashInfo(float frameNo, std::vector<float> &result) const
 {
     result.clear();
 
@@ -244,7 +244,7 @@ void model::Dash::getDashInfo(int frameNo, std::vector<float> &result) const
  *     ...
  * ]
  */
-void model::Gradient::populate(VGradientStops &stops, int frameNo)
+void model::Gradient::populate(VGradientStops &stops, float frameNo)
 {
     model::Gradient::Data gradData = mGradient.value(frameNo);
     auto                  size = gradData.mGradient.size();
@@ -293,7 +293,7 @@ float model::Gradient::getOpacityAtPosition(float *opacities, size_t opacityArra
     return 0.0f;
 }
 
-void model::Gradient::update(std::unique_ptr<VGradient> &grad, int frameNo)
+void model::Gradient::update(std::unique_ptr<VGradient> &grad, float frameNo)
 {
     bool init = false;
     if (!grad) {

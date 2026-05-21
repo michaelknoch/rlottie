@@ -49,6 +49,7 @@ class AnimationImpl {
 public:
     void    init(std::shared_ptr<model::Composition> composition);
     bool    update(size_t frameNo, const VSize &size, bool keepAspectRatio);
+    bool    updateAtFrameF(double frameNo, const VSize &size, bool keepAspectRatio);
     VSize   size() const { return mModel->size(); }
     double  duration() const { return mModel->duration(); }
     double  frameRate() const { return mModel->frameRate(); }
@@ -56,6 +57,8 @@ public:
     size_t  frameAtPos(double pos) const { return mModel->frameAtPos(pos); }
     Surface render(size_t frameNo, const Surface &surface,
                    bool keepAspectRatio);
+    Surface renderAtFrameF(double frameNo, const Surface &surface,
+                           bool keepAspectRatio);
     std::future<Surface> renderAsync(size_t frameNo, Surface &&surface,
                                      bool keepAspectRatio);
     const LOTLayerNode * renderTree(size_t frameNo, const VSize &size);
@@ -105,6 +108,19 @@ bool AnimationImpl::update(size_t frameNo, const VSize &size,
     return mRenderer->update(int(frameNo), size, keepAspectRatio);
 }
 
+bool AnimationImpl::updateAtFrameF(double frameNo, const VSize &size,
+                                   bool keepAspectRatio)
+{
+    frameNo += static_cast<double>(mModel->startFrame());
+
+    if (frameNo > static_cast<double>(mModel->endFrame()))
+        frameNo = static_cast<double>(mModel->endFrame());
+    if (frameNo < static_cast<double>(mModel->startFrame()))
+        frameNo = static_cast<double>(mModel->startFrame());
+
+    return mRenderer->update(static_cast<float>(frameNo), size, keepAspectRatio);
+}
+
 Surface AnimationImpl::render(size_t frameNo, const Surface &surface,
                               bool keepAspectRatio)
 {
@@ -116,6 +132,26 @@ Surface AnimationImpl::render(size_t frameNo, const Surface &surface,
 
     mRenderInProgress.store(true);
     update(
+        frameNo,
+        VSize(int(surface.drawRegionWidth()), int(surface.drawRegionHeight())),
+        keepAspectRatio);
+    mRenderer->render(surface);
+    mRenderInProgress.store(false);
+
+    return surface;
+}
+
+Surface AnimationImpl::renderAtFrameF(double frameNo, const Surface &surface,
+                                      bool keepAspectRatio)
+{
+    bool renderInProgress = mRenderInProgress.load();
+    if (renderInProgress) {
+        vCritical << "Already Rendering Scheduled for this Animation";
+        return surface;
+    }
+
+    mRenderInProgress.store(true);
+    updateAtFrameF(
         frameNo,
         VSize(int(surface.drawRegionWidth()), int(surface.drawRegionHeight())),
         keepAspectRatio);
@@ -369,6 +405,12 @@ void Animation::renderSync(size_t frameNo, Surface surface,
                            bool keepAspectRatio)
 {
     d->render(frameNo, surface, keepAspectRatio);
+}
+
+void Animation::renderSyncAtFrameF(double frameNo, Surface surface,
+                                   bool keepAspectRatio)
+{
+    d->renderAtFrameF(frameNo, surface, keepAspectRatio);
 }
 
 const LayerInfoList &Animation::layers() const

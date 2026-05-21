@@ -366,7 +366,7 @@ public:
     CapStyle  capStyle() const { return this->model()->capStyle(); }
     JoinStyle joinStyle() const { return this->model()->joinStyle(); }
     bool      hasDashInfo() const { return this->model()->hasDashInfo(); }
-    void      getDashInfo(int frameNo, std::vector<float>& result) const
+    void      getDashInfo(float frameNo, std::vector<float>& result) const
     {
         return this->model()->getDashInfo(frameNo, result);
     }
@@ -431,7 +431,7 @@ class Filter<model::Trim>: public FilterBase<model::Trim>
 public:
     Filter(model::Trim* model) : FilterBase<model::Trim>(model) {}
 
-    model::Trim::Segment segment(int frameNo) const
+    model::Trim::Segment segment(float frameNo) const
     {
         if (this->hasFilter(rlottie::Property::TrimStart)) {
             this->model_->updateTrimStartValue(this->filter()->value(rlottie::Property::TrimStart, frameNo));

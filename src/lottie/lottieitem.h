@@ -151,7 +151,7 @@ public:
 class Mask {
 public:
     explicit Mask(model::Mask *data) : mData(data) {}
-    void update(int frameNo, const VMatrix &parentMatrix, float parentAlpha,
+    void update(float frameNo, const VMatrix &parentMatrix, float parentAlpha,
                 const DirtyFlag &flag);
     model::Mask::Mode maskMode() const { return mData->mMode; }
     VRle              rle();
@@ -172,7 +172,7 @@ public:
 class LayerMask {
 public:
     explicit LayerMask(model::Layer *layerData);
-    void update(int frameNo, const VMatrix &parentMatrix, float parentAlpha,
+    void update(float frameNo, const VMatrix &parentMatrix, float parentAlpha,
                 const DirtyFlag &flag);
     bool isStatic() const { return mStatic; }
     VRle maskRle(const VRect &clipRect);
@@ -190,7 +190,7 @@ class Layer;
 class Composition {
 public:
     explicit Composition(std::shared_ptr<model::Composition> composition);
-    bool  update(int frameNo, const VSize &size, bool keepAspectRatio);
+    bool  update(float frameNo, const VSize &size, bool keepAspectRatio);
     VSize size() const { return mViewSize; }
     void  buildRenderTree();
     const LOTLayerNode *renderTree() const;
@@ -205,7 +205,7 @@ private:
     std::shared_ptr<model::Composition> mModel;
     Layer *                             mRootLayer{nullptr};
     VArenaAlloc                         mAllocator{2048};
-    int                                 mCurFrameNo;
+    float                               mCurFrameNo;
     bool                                mKeepAspectRatio{true};
     bool                                mHasDynamicValue{false};
 };
@@ -220,9 +220,9 @@ public:
     void         setParentLayer(Layer *parent) { mParentLayer = parent; }
     void         setComplexContent(bool value) { mComplexContent = value; }
     bool         complexContent() const { return mComplexContent; }
-    virtual void update(int frameNo, const VMatrix &parentMatrix,
+    virtual void update(float frameNo, const VMatrix &parentMatrix,
                         float parentAlpha);
-    VMatrix      matrix(int frameNo) const;
+    VMatrix      matrix(float frameNo) const;
     void         preprocess(const VRect &clip);
     virtual DrawableList renderList() { return {}; }
     virtual void         render(VPainter *painter, const VRle &mask,
@@ -247,10 +247,10 @@ protected:
     virtual void   preprocessStage(const VRect &clip) = 0;
     virtual void   updateContent() = 0;
     inline VMatrix combinedMatrix() const { return mCombinedMatrix; }
-    inline int     frameNo() const { return mFrameNo; }
+    inline float   frameNo() const { return mFrameNo; }
     inline float   combinedAlpha() const { return mCombinedAlpha; }
     inline bool    isStatic() const { return mLayerData->isStatic(); }
-    float opacity(int frameNo) const { return mLayerData->opacity(frameNo); }
+    float opacity(float frameNo) const { return mLayerData->opacity(frameNo); }
     inline DirtyFlag flag() const { return mDirtyFlag; }
     bool             skipRendering() const
     {
@@ -263,7 +263,7 @@ protected:
     Layer *                    mParentLayer{nullptr};
     VMatrix                    mCombinedMatrix;
     float                      mCombinedAlpha{0.0};
-    int                        mFrameNo{-1};
+    float                      mFrameNo{-1};
     DirtyFlag                  mDirtyFlag{DirtyFlagBit::All};
     bool                       mComplexContent{false};
     std::unique_ptr<CApiData>  mCApiData;
@@ -361,7 +361,7 @@ public:
     enum class Type : uint8_t { Unknown, Group, Shape, Paint, Trim };
     virtual ~Object() = default;
     Object &     operator=(Object &&) noexcept = delete;
-    virtual void update(int frameNo, const VMatrix &parentMatrix,
+    virtual void update(float frameNo, const VMatrix &parentMatrix,
                         float parentAlpha, const DirtyFlag &flag) = 0;
     virtual void renderList(std::vector<VDrawable *> &) {}
     virtual bool resolveKeyPath(LOTKeyPath &, uint32_t, LOTVariant &)
@@ -377,7 +377,7 @@ public:
     Group() = default;
     explicit Group(model::Group *data, VArenaAlloc *allocator);
     void addChildren(model::Group *data, VArenaAlloc *allocator);
-    void update(int frameNo, const VMatrix &parentMatrix, float parentAlpha,
+    void update(float frameNo, const VMatrix &parentMatrix, float parentAlpha,
                 const DirtyFlag &flag) override;
     void applyTrim();
     void processTrimItems(std::vector<Shape *> &list);
@@ -404,7 +404,7 @@ private:
 class Shape : public Object {
 public:
     Shape(bool staticPath) : mStaticPath(staticPath) {}
-    void update(int frameNo, const VMatrix &parentMatrix, float parentAlpha,
+    void update(float frameNo, const VMatrix &parentMatrix, float parentAlpha,
                 const DirtyFlag &flag) final;
     Object::Type type() const final { return Object::Type::Shape; }
     bool         dirty() const { return mDirtyPath; }
@@ -420,13 +420,13 @@ public:
     Group *parent() const { return mParent; }
 
 protected:
-    virtual void updatePath(VPath &path, int frameNo) = 0;
-    virtual bool hasChanged(int prevFrame, int curFrame) = 0;
+    virtual void updatePath(VPath &path, float frameNo) = 0;
+    virtual bool hasChanged(float prevFrame, float curFrame) = 0;
 
 private:
-    bool hasChanged(int frameNo)
+    bool hasChanged(float frameNo)
     {
-        int prevFrame = mFrameNo;
+        float prevFrame = mFrameNo;
         mFrameNo = frameNo;
         if (prevFrame == -1) return true;
         if (mStaticPath || (prevFrame == frameNo)) return false;
@@ -435,7 +435,7 @@ private:
     Group *mParent{nullptr};
     VPath  mLocalPath;
     VPath  mTemp;
-    int    mFrameNo{-1};
+    float  mFrameNo{-1};
     bool   mDirtyPath{true};
     bool   mStaticPath;
 };
@@ -445,10 +445,10 @@ public:
     explicit Rect(model::Rect *data);
 
 protected:
-    void         updatePath(VPath &path, int frameNo) final;
+    void         updatePath(VPath &path, float frameNo) final;
     model::Rect *mData{nullptr};
 
-    bool hasChanged(int prevFrame, int curFrame) final
+    bool hasChanged(float prevFrame, float curFrame) final
     {
         return (mData->mPos.changed(prevFrame, curFrame) ||
                 mData->mSize.changed(prevFrame, curFrame) ||
@@ -461,9 +461,9 @@ public:
     explicit Ellipse(model::Ellipse *data);
 
 private:
-    void            updatePath(VPath &path, int frameNo) final;
+    void            updatePath(VPath &path, float frameNo) final;
     model::Ellipse *mData{nullptr};
-    bool            hasChanged(int prevFrame, int curFrame) final
+    bool            hasChanged(float prevFrame, float curFrame) final
     {
         return (mData->mPos.changed(prevFrame, curFrame) ||
                 mData->mSize.changed(prevFrame, curFrame));
@@ -475,9 +475,9 @@ public:
     explicit Path(model::Path *data);
 
 private:
-    void         updatePath(VPath &path, int frameNo) final;
+    void         updatePath(VPath &path, float frameNo) final;
     model::Path *mData{nullptr};
-    bool         hasChanged(int prevFrame, int curFrame) final
+    bool         hasChanged(float prevFrame, float curFrame) final
     {
         return mData->mShape.changed(prevFrame, curFrame);
     }
@@ -488,10 +488,10 @@ public:
     explicit Polystar(model::Polystar *data);
 
 private:
-    void             updatePath(VPath &path, int frameNo) final;
+    void             updatePath(VPath &path, float frameNo) final;
     model::Polystar *mData{nullptr};
 
-    bool hasChanged(int prevFrame, int curFrame) final
+    bool hasChanged(float prevFrame, float curFrame) final
     {
         return (mData->mPos.changed(prevFrame, curFrame) ||
                 mData->mPointCount.changed(prevFrame, curFrame) ||
@@ -507,13 +507,13 @@ class Paint : public Object {
 public:
     Paint(bool staticContent);
     void addPathItems(std::vector<Shape *> &list, size_t startOffset);
-    void update(int frameNo, const VMatrix &parentMatrix, float parentAlpha,
+    void update(float frameNo, const VMatrix &parentMatrix, float parentAlpha,
                 const DirtyFlag &flag) override;
     void renderList(std::vector<VDrawable *> &list) final;
     Object::Type type() const final { return Object::Type::Paint; }
 
 protected:
-    virtual bool updateContent(int frameNo, const VMatrix &matrix,
+    virtual bool updateContent(float frameNo, const VMatrix &matrix,
                                float alpha) = 0;
 
 private:
@@ -534,7 +534,7 @@ public:
     explicit Fill(model::Fill *data);
 
 protected:
-    bool updateContent(int frameNo, const VMatrix &matrix, float alpha) final;
+    bool updateContent(float frameNo, const VMatrix &matrix, float alpha) final;
     bool resolveKeyPath(LOTKeyPath &keyPath, uint32_t depth,
                         LOTVariant &value) final;
 
@@ -547,7 +547,7 @@ public:
     explicit GradientFill(model::GradientFill *data);
 
 protected:
-    bool updateContent(int frameNo, const VMatrix &matrix, float alpha) final;
+    bool updateContent(float frameNo, const VMatrix &matrix, float alpha) final;
 
 private:
     model::GradientFill *      mData{nullptr};
@@ -559,7 +559,7 @@ public:
     explicit Stroke(model::Stroke *data);
 
 protected:
-    bool updateContent(int frameNo, const VMatrix &matrix, float alpha) final;
+    bool updateContent(float frameNo, const VMatrix &matrix, float alpha) final;
     bool resolveKeyPath(LOTKeyPath &keyPath, uint32_t depth,
                         LOTVariant &value) final;
 
@@ -572,7 +572,7 @@ public:
     explicit GradientStroke(model::GradientStroke *data);
 
 protected:
-    bool updateContent(int frameNo, const VMatrix &matrix, float alpha) final;
+    bool updateContent(float frameNo, const VMatrix &matrix, float alpha) final;
 
 private:
     model::GradientStroke *    mData{nullptr};
@@ -582,7 +582,7 @@ private:
 class Trim final : public Object {
 public:
     explicit Trim(model::Trim *data) : mData(data), mModel(data) {}
-    void update(int frameNo, const VMatrix &parentMatrix, float parentAlpha,
+    void update(float frameNo, const VMatrix &parentMatrix, float parentAlpha,
                 const DirtyFlag &flag) final;
     Object::Type type() const final { return Object::Type::Trim; }
     void         update();
@@ -600,7 +600,7 @@ private:
         return false;
     }
     struct Cache {
-        int                  mFrameNo{-1};
+        float                mFrameNo{-1};
         model::Trim::Segment mSegment{};
     };
     Cache                mCache;
@@ -615,7 +615,7 @@ private:
 class Repeater final : public Group {
 public:
     explicit Repeater(model::Repeater *data, VArenaAlloc *allocator);
-    void update(int frameNo, const VMatrix &parentMatrix, float parentAlpha,
+    void update(float frameNo, const VMatrix &parentMatrix, float parentAlpha,
                 const DirtyFlag &flag) final;
     void renderList(std::vector<VDrawable *> &list) final;
 

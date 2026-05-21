@@ -234,6 +234,17 @@ RLOTTIE_API size_t lottie_animation_get_frame_at_pos(const Lottie_Animation *ani
 RLOTTIE_API void lottie_animation_render(Lottie_Animation *animation, size_t frame_num, uint32_t *buffer, size_t width, size_t height, size_t bytes_per_line);
 
 /**
+ *  @brief Like lottie_animation_render, but takes a floating-point frame index
+ *         so the keyframe interpolator is sampled at sub-frame resolution. Use
+ *         this to render smoothly at display refresh rates higher than the
+ *         animation's authored framerate.
+ *
+ *  @ingroup Lottie_Animation
+ *  @internal
+ */
+RLOTTIE_API void lottie_animation_render_at_frame_f(Lottie_Animation *animation, double frame_num, uint32_t *buffer, size_t width, size_t height, size_t bytes_per_line);
+
+/**
  *  @brief Request to render the content of the frame @p frame_num to buffer @p buffer asynchronously.
  *
  *  @param[in] animation Animation object.

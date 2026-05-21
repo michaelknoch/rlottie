@@ -424,6 +424,14 @@ public:
     void              renderSync(size_t frameNo, Surface surface, bool keepAspectRatio=true);
 
     /**
+     *  @brief Like renderSync, but accepts a floating-point frame index so the
+     *         keyframe interpolator can be sampled at sub-frame resolution. Use
+     *         this to render smoothly at display refresh rates higher than the
+     *         animation's authored framerate.
+     */
+    void              renderSyncAtFrameF(double frameNo, Surface surface, bool keepAspectRatio=true);
+
+    /**
      *  @brief Returns root layer of the composition updated with
      *         content of the Lottie resource at frame number @p frameNo.
      *
