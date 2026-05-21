@@ -12,3 +12,8 @@ tmp
 .vs
 **/*.DS_Store
 builddir_wasm
+
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved

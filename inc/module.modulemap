@@ -1,0 +1,5 @@
+module Crlottie {
+    header "rlottie_capi.h"
+    header "rlottiecommon.h"
+    export *
+}
